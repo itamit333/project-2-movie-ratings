@@ -1,0 +1,92 @@
+
+
+CREATE DATABASE IF NOT EXISTS classproject1;
+USE classproject1;
+
+CREATE TABLE movies (
+    movieId INT,
+    title STRING,
+    genres STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+CREATE TABLE ratings (
+    userId INT,
+    movieId INT,
+    rating FLOAT,
+    timestamp INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+Load the movie and ratings data into their respective tables in Hive.
+
+LOAD DATA INPATH '/path/to/hadoop/directory/movies_no_header.csv' INTO TABLE movies;
+LOAD DATA INPATH '/path/to/hadoop/directory/ratings_no_header.csv' INTO TABLE ratings;
+
+
+Write a SQL query to list all movies with the number of ratings each has received.
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import count
+
+spark = SparkSession.builder.appName("MovieLensAnalysis").enableHiveSupport().getOrCreate()
+
+movies = spark.table("classproject1.movies")
+ratings = spark.table("classproject1.ratings")
+
+movie_ratings_count = movies.join(ratings, "movieId", "left") \
+                            .groupBy("movieId", "title") \
+                            .agg(count("rating").alias("num_ratings"))
+
+movie_ratings_count.show()
+
+
+Write a SQL query to list all users and the number of ratings they have provided.
+
+from pyspark.sql.functions import count
+
+user_ratings_count = ratings.groupBy("userId") \
+                            .agg(count("rating").alias("num_ratings"))
+
+user_ratings_count.show()
+
+
+
+
+Write a SQL query to list all movie IDs that have received at least one rating.
+
+movie_ids_with_ratings = ratings.select("movieId").distinct()
+
+movie_ids_with_ratings.show()
+
+Write a SQL query to list all users who have rated at least one movie.
+
+users_with_ratings = ratings.select("userId").distinct()
+
+users_with_ratings.show()
+
+Compute statistics for each user, including max, min, and average ratings given.
+
+from pyspark.sql.functions import max, min, avg
+
+user_rating_stats = ratings.groupBy("userId") \
+                           .agg(max("rating").alias("max_rating"),
+                                min("rating").alias("min_rating"),
+                                avg("rating").alias("avg_rating"))
+
+user_rating_stats.show()
+
+
+
+Compute statistics for each movie, including max, min, and average ratings received.
+
+movie_rating_stats = ratings.groupBy("movieId") \
+                            .agg(max("rating").alias("max_rating"),
+                                 min("rating").alias("min_rating"),
+                                 avg("rating").alias("avg_rating"))
+
+movie_rating_stats.show()
